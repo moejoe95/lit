@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "branch.hpp"
 #include "commit.hpp"
 #include "constants.hpp"
 #include "exec.hpp"
@@ -34,7 +35,9 @@ void print_help_message() {
           "    Starts merging process with the currently checked out "
           "commit and a specified commit.\n"
           "  log \n"
-          "    Displays a commit graph."
+          "    Displays a commit graph.\n"
+          "  branches \n"
+          "    List active branches."
        << endl;
 }
 
@@ -53,18 +56,21 @@ void lit_init(fs::path cwd) {
   }
 }
 
-void lit_checkout(int id, fs::path cwd) {
+std::string lit_checkout(fs::path cwd, const std::string &rev) {
   fs::path lit_dir = cwd / LIT_DIR;
-  string parent_rev_dir = REVISION_PX + std::to_string(id - 1);
+  int parent_id = read_int_from_file(lit_dir / rev / COMMIT_PARENT_ID_FILE);
 
-  fs::path patch_file = lit_dir / parent_rev_dir / parent_rev_dir;
+  fs::path patch_file = lit_dir / rev / COMMIT_PATCH;
 
   std::vector<string> args{"-ruN", "-d", cwd, "<", patch_file};
   exec cmd("patch", args);
   cmd.run();
 
   // reset head
-  write_to_file(lit_dir / COMMIT_HEAD, id - 1);
+  write_to_file(lit_dir / COMMIT_HEAD, parent_id);
+
+  std::string parent_rev_dir = REVISION_PX + std::to_string(parent_id);
+  return parent_rev_dir;
 }
 
 void create_commit(fs::path cwd, std::string message) {
@@ -98,6 +104,8 @@ int main(int argc, char **argv) {
 
     int head_id = read_int_from_file(lit_dir / COMMIT_HEAD);
     cout << "on commit: r" << head_id << endl;
+
+    // TODO compare with HEAD, not with latest
 
     // list new files
     std::regex exclude("^.lit*");
@@ -147,33 +155,42 @@ int main(int argc, char **argv) {
       revision = argv[2];
     }
 
-    cout << read_string_from_file(lit_dir / revision / COMMIT_INFO_FILE);
-    cout << read_string_from_file(lit_dir / revision / revision);
-
   } else if (command.compare(CMD_CHECKOUT) == 0) {
 
     string rev_to_check;
-    if (argc < 3) {
-      int head_id = read_int_from_file(lit_dir / COMMIT_HEAD);
-      rev_to_check = REVISION_PX + std::to_string(head_id);
-    } else {
+    int head_id = read_int_from_file(lit_dir / COMMIT_HEAD);
+    rev_to_check = REVISION_PX + std::to_string(head_id);
+
+    if (head_id != latest_id) {
+      std::regex exclude_commit("(^commit.*)");
+      delete_files(lit_dir / rev_to_check, exclude_commit);
+    }
+
+    if (argc >= 3) {
       rev_to_check = argv[2];
     }
 
+    // delete files because no new branch was created
+    // TODO check if rev_to_check is head of branch, not latest commit
     if (rev_to_check == rev_dir) {
       write_to_file(lit_dir / COMMIT_HEAD, latest_id);
       std::regex exclude("(^.lit*|^commit.*)");
       copy_files_exclude(lit_dir / rev_dir, cwd, exclude, true);
+      return 0;
     }
 
     while (rev_to_check != rev_dir) {
       if (rev_dir == "r0") {
         cout << "revision: " << rev_to_check << " not found" << endl;
+        write_to_file(lit_dir / COMMIT_HEAD, head_id);
         break;
       }
-      lit_checkout(latest_id, cwd);
-      rev_dir = REVISION_PX + std::to_string(--latest_id);
+      rev_dir = lit_checkout(cwd, rev_dir);
     }
+
+    // copy files needed if new branch created in next step
+    std::regex exclude_lit("(^.lit*)");
+    copy_files_exclude(cwd, lit_dir / rev_to_check, exclude_lit, false);
 
   } else if (command.compare(CMD_MERGE) == 0) {
     // TODO
@@ -185,6 +202,13 @@ int main(int argc, char **argv) {
           read_string_from_file(lit_dir / rev_dir / COMMIT_MESSAGE_FILE);
       cout << "o " << rev_dir << " " << message << endl;
       latest_id--;
+    }
+
+  } else if (command.compare(CMD_BRANCHES) == 0) {
+    branch branch{cwd};
+    std::set<string> branches = branch.get_active_branches();
+    for (auto b : branches) {
+      cout << b << std::endl;
     }
   } else {
     return print_error("command not known.");

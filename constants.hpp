@@ -11,6 +11,8 @@ const std::string COMMIT_PARENT_ID_FILE = "commit.parent.id";
 const std::string COMMIT_INFO_FILE = "commit.info";
 const std::string COMMIT_MESSAGE_FILE = "commit.message";
 const std::string COMMIT_HEAD = "commit.head";
+const std::string COMMIT_PATCH = "commit.patch";
+const std::string COMMIT_BRANCHES = "commit.branches";
 const std::string COMMIT_FILE_PATTERN = "commit.*";
 
 const std::string CMD_INIT = "init";
@@ -21,5 +23,6 @@ const std::string CMD_CHECKOUT = "checkout";
 const std::string CMD_SHOW = "show";
 const std::string CMD_LOG = "log";
 const std::string CMD_HELP = "help";
+const std::string CMD_BRANCHES = "branches";
 
 #endif /* CONST_HPP */

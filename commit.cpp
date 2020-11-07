@@ -6,6 +6,7 @@
 #include <regex>
 #include <string>
 
+#include "branch.hpp"
 #include "commit.hpp"
 #include "constants.hpp"
 #include "exec.hpp"
@@ -23,14 +24,21 @@ commit::commit(fs::path cwd_path, const string message)
   if (!fs::exists(LIT_DIR)) {
     parent_id = 0;
     id = 1;
-    revision_dir = lit_path / "r0";
-    parent_revision_dir = lit_path / "r1";
+    revision_dir = lit_path / "r1";
+    parent_revision_dir = lit_path / "r0";
     init_commit();
   } else {
     parent_id = read_int_from_file(lit_path / COMMIT_HEAD);
     id = read_int_from_file(lit_path / COMMIT_ID_FILE) + 1;
     revision_dir = lit_path / get_revision_name();
     parent_revision_dir = lit_path / get_parent_revision_name();
+  }
+  // update branch
+  branch branch{cwd_path};
+  if (branch.is_branch(get_parent_revision_name())) {
+    branch.update_branch(get_parent_revision_name(), get_revision_name());
+  } else {
+    branch.add_branch(get_revision_name());
   }
 }
 
@@ -41,6 +49,9 @@ void commit::init_commit() {
   write_to_file(cwd_path / LITIGNORE, litignore.str());
 
   fs::create_directories(lit_path);
+
+  // create branches file
+  write_to_file(lit_path / COMMIT_BRANCHES, "r1");
 
   write_commit_infos();
 
@@ -59,8 +70,9 @@ void commit::create_commit() {
   std::regex exclude(COMMIT_FILE_PATTERN);
   delete_files(parent_revision_dir, exclude);
 
-  fs::path parent_path = parent_revision_dir / get_parent_revision_name();
-  write_to_file(parent_path, out);
+  fs::create_directories(revision_dir);
+  fs::path patch_path = revision_dir / COMMIT_PATCH;
+  write_to_file(patch_path, out);
 
   write_commit_infos();
 
@@ -73,8 +85,12 @@ void commit::write_commit_infos() {
   write_to_file(lit_path / COMMIT_HEAD, id);
 
   // copy to new revision directory
-  fs::create_directories(lit_path / get_revision_name());
-  copy_files(cwd_path, lit_path / get_revision_name());
+  if (!fs::exists(revision_dir)) {
+    fs::create_directories(revision_dir);
+  }
+
+  std::regex exclude(".lit");
+  copy_files_exclude(cwd_path, revision_dir, exclude, false);
 
   // write commit.message file
   write_to_file(revision_dir / COMMIT_MESSAGE_FILE, message);
