@@ -97,27 +97,26 @@ int main(int argc, char **argv) {
 
   int latest_id = read_int_from_file(lit_dir / COMMIT_ID_FILE);
   string rev_dir = REVISION_PX + std::to_string(latest_id);
+  int head_id = read_int_from_file(lit_dir / COMMIT_HEAD);
+  string head_dir = REVISION_PX + std::to_string(head_id);
 
   if (command.compare(CMD_HELP) == 0) {
     print_help_message();
   } else if (command.compare(CMD_STATUS) == 0) {
 
-    int head_id = read_int_from_file(lit_dir / COMMIT_HEAD);
     cout << "on commit: r" << head_id << endl;
-
-    // TODO compare with HEAD, not with latest
 
     // list new files
     std::regex exclude("^.lit*");
-    compare_directories(cwd, lit_dir / rev_dir, exclude, "NEW");
+    compare_directories(cwd, lit_dir / head_dir, exclude, "NEW");
 
     for (const auto &entry : fs::directory_iterator(cwd)) {
       string filename = entry.path().filename().u8string();
       if (!regex_match(filename, exclude)) {
-        if (fs::exists(lit_dir / rev_dir / filename)) {
+        if (fs::exists(lit_dir / head_dir / filename)) {
 
           std::vector<string> args{"-q", cwd / filename,
-                                   lit_dir / rev_dir / filename};
+                                   lit_dir / head_dir / filename};
           exec cmd("diff", args);
 
           string response = cmd.run();
@@ -130,7 +129,7 @@ int main(int argc, char **argv) {
 
     // list deleted files
     exclude = std::regex("(^.lit*|^commit.*)");
-    compare_directories(lit_dir / rev_dir, cwd, exclude, "DEL");
+    compare_directories(lit_dir / head_dir, cwd, exclude, "DEL");
 
     // TODO check for modified files
 
@@ -147,18 +146,11 @@ int main(int argc, char **argv) {
     }
   } else if (command.compare(CMD_SHOW) == 0) {
 
-    string revision;
-    if (argc < 3) {
-      int head_id = read_int_from_file(lit_dir / COMMIT_HEAD);
-      revision = REVISION_PX + std::to_string(head_id);
-    } else {
-      revision = argv[2];
-    }
+    // TODO
 
   } else if (command.compare(CMD_CHECKOUT) == 0) {
 
     string rev_to_check;
-    int head_id = read_int_from_file(lit_dir / COMMIT_HEAD);
     rev_to_check = REVISION_PX + std::to_string(head_id);
 
     if (head_id != latest_id) {
