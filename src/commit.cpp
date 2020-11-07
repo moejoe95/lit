@@ -6,11 +6,11 @@
 #include <regex>
 #include <string>
 
-#include "branch.hpp"
-#include "commit.hpp"
-#include "constants.hpp"
-#include "exec.hpp"
-#include "file_utils.hpp"
+#include "headers/branch.hpp"
+#include "headers/commit.hpp"
+#include "headers/constants.hpp"
+#include "headers/exec.hpp"
+#include "headers/file_utils.hpp"
 
 namespace fs = std::filesystem;
 using std::string;

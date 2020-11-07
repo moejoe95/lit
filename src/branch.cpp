@@ -4,8 +4,8 @@
 #include <set>
 #include <string>
 
-#include "branch.hpp"
-#include "constants.hpp"
+#include "headers/branch.hpp"
+#include "headers/constants.hpp"
 
 namespace fs = std::filesystem;
 
