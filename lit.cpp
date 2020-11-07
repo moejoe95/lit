@@ -188,11 +188,47 @@ int main(int argc, char **argv) {
     // TODO
   } else if (command.compare(CMD_LOG) == 0) {
 
-    while (latest_id >= 0) {
-      rev_dir = REVISION_PX + std::to_string(latest_id);
-      string message =
-          read_string_from_file(lit_dir / rev_dir / COMMIT_MESSAGE_FILE);
-      cout << "o " << rev_dir << " " << message << endl;
+    branch branch{cwd};
+    std::set<string> branches = branch.get_active_branches();
+
+    std::vector<std::vector<int>> history;
+    for (auto b : branches) {
+      int id = read_int_from_file(lit_dir / b / COMMIT_PARENT_ID_FILE);
+      std::vector<int> branch_hist;
+      b = b.substr(1, b.size());
+      branch_hist.push_back(std::stoi(b));
+      while (id > 0) {
+        string rev = REVISION_PX + std::to_string(id);
+        branch_hist.push_back(id);
+        int old_id = id;
+        id = read_int_from_file(lit_dir / rev / COMMIT_PARENT_ID_FILE);
+      }
+      history.push_back(branch_hist);
+    }
+
+    while (latest_id > 0) {
+      string rev = REVISION_PX + std::to_string(latest_id);
+      string msg = read_string_from_file(lit_dir / rev / COMMIT_MESSAGE_FILE);
+
+      int i = 0;
+      bool is_brached = false;
+      for (auto branch_hist : history) {
+        for (int j = 0; j < i; j++)
+          cout << " ";
+
+        if (std::count(branch_hist.begin(), branch_hist.end(), latest_id)) {
+          if (is_brached)
+            cout << "_|";
+          else
+            cout << " o";
+          is_brached = true;
+        } else {
+          cout << " |";
+        }
+        i++;
+      }
+
+      cout << "\t\t" << msg << endl;
       latest_id--;
     }
 
