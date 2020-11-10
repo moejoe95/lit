@@ -23,7 +23,7 @@ commit::commit(fs::path cwd_path, const string message)
 
   if (!fs::exists(LIT_DIR)) {
     parent_id = 0;
-    id = 1;
+    id = 1; // TODO start at id 0
     revision_dir = lit_path / "r1";
     parent_revision_dir = lit_path / "r0";
     init_commit();
@@ -62,8 +62,13 @@ void commit::create_commit() {
 
   string out = diff();
 
-  if (out.empty()) {
+  std::regex exclude_lit("^.lit*");
+  bool is_new =
+      compare_directories(cwd_path, parent_revision_dir, exclude_lit, "");
+
+  if (out.empty() && !is_new) {
     std::cout << "nothing to commit" << std::endl;
+
     return;
   }
 
@@ -113,6 +118,8 @@ void commit::print_commit() {
 
   std::stringstream commit_infos;
   commit_infos << "Commit: " << get_revision_name() << std::endl;
+  // TODO write all parents in merge commits
+  commit_infos << "Parents: " << get_parent_revision_name() << std::endl;
 
   milliseconds ms = duration_cast<milliseconds>(timestamp.time_since_epoch());
   seconds s = duration_cast<seconds>(ms);

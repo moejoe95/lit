@@ -65,15 +65,18 @@ void copy_files(fs::path from, fs::path to) {
   copy_files_exclude(from, to, exclude, false);
 }
 
-void compare_directories(fs::path from, fs::path to, std::regex exclude,
+bool compare_directories(fs::path from, fs::path to, std::regex exclude,
                          std::string identifier) {
-
+  bool new_files = false;
   for (const auto &entry : fs::directory_iterator(from)) {
     string filename = entry.path().filename().u8string();
     if (!regex_match(filename, exclude)) {
       if (!fs::exists(to / filename)) {
-        std::cout << identifier << ": " << filename << std::endl;
+        if (!identifier.empty())
+          std::cout << identifier << ": " << filename << std::endl;
+        new_files = true;
       }
     }
   }
+  return new_files;
 }

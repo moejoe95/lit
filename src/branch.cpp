@@ -35,6 +35,11 @@ void branch::add_branch(const std::string &revision) {
   serialize();
 }
 
+void branch::merge_branch(const std::string &to_merge) {
+  branches.erase(to_merge);
+  serialize();
+}
+
 void branch::serialize() {
   fs::remove(branch_file);
   std::ofstream outfile;

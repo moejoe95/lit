@@ -56,7 +56,7 @@ void lit_init(fs::path cwd) {
   }
 }
 
-std::string lit_checkout(fs::path cwd, const std::string &rev) {
+std::string lit_checkout_next(fs::path cwd, const std::string &rev) {
   fs::path lit_dir = cwd / LIT_DIR;
   int parent_id = read_int_from_file(lit_dir / rev / COMMIT_PARENT_ID_FILE);
 
@@ -71,6 +71,16 @@ std::string lit_checkout(fs::path cwd, const std::string &rev) {
 
   std::string parent_rev_dir = REVISION_PX + std::to_string(parent_id);
   return parent_rev_dir;
+}
+
+std::string lit_checkout(fs::path cwd, const std::string &rev_to_check,
+                         std::string rev_dir) {
+  while (rev_to_check != rev_dir) {
+    if (rev_dir != "r0") {
+      rev_dir = lit_checkout_next(cwd, rev_dir);
+    }
+  }
+  return rev_dir;
 }
 
 void create_commit(fs::path cwd, std::string message) {
@@ -146,7 +156,19 @@ int main(int argc, char **argv) {
     }
   } else if (command.compare(CMD_SHOW) == 0) {
 
-    // TODO
+    if (argc >= 3) {
+      head_dir = argv[2];
+    }
+
+    if (!fs::exists(lit_dir / head_dir)) {
+      cout << "Commit: " << head_dir << " does not exist." << endl;
+      return 0;
+    }
+
+    cout << read_string_from_file(lit_dir / head_dir / COMMIT_INFO_FILE);
+
+    string patch = read_string_from_file(lit_dir / head_dir / COMMIT_PATCH);
+    cout << patch.substr(patch.find_first_of('\n'), patch.size());
 
   } else if (command.compare(CMD_CHECKOUT) == 0) {
 
@@ -171,21 +193,76 @@ int main(int argc, char **argv) {
       return 0;
     }
 
-    while (rev_to_check != rev_dir) {
-      if (rev_dir == "r0") {
-        cout << "revision: " << rev_to_check << " not found" << endl;
-        write_to_file(lit_dir / COMMIT_HEAD, head_id);
+    branch branch{cwd};
+    std::set<string> branches = branch.get_active_branches();
+    bool rev_found = false;
+    for (auto b : branches) {
+      std::regex exclude("(^.lit*|^commit.*)");
+      copy_files_exclude(lit_dir / b, cwd, exclude, true);
+      rev_dir = lit_checkout(cwd, rev_to_check, b);
+      if (rev_dir != "r0") {
+        rev_found = true;
         break;
       }
-      rev_dir = lit_checkout(cwd, rev_dir);
+    }
+
+    if (rev_dir == "r0") {
+      cout << "revision: " << rev_to_check << " not found" << endl;
+      write_to_file(lit_dir / COMMIT_HEAD, head_id);
     }
 
     // copy files needed if new branch created in next step
-    std::regex exclude_lit("(^.lit*)");
-    copy_files_exclude(cwd, lit_dir / rev_to_check, exclude_lit, false);
+    if (rev_found) {
+      std::regex exclude_lit("(^.lit*)");
+      copy_files_exclude(cwd, lit_dir / rev_to_check, exclude_lit, false);
+    }
 
   } else if (command.compare(CMD_MERGE) == 0) {
-    // TODO
+
+    if (argc < 3) {
+      cout << "no commit to merge given." << endl;
+      return 0;
+    }
+
+    string rev_to_merge{argv[2]};
+    std::vector<string> conflict_files;
+
+    for (const auto &entry : fs::directory_iterator(lit_dir / rev_to_merge)) {
+      string filename = entry.path().filename().u8string();
+      string base_file = lit_dir / head_dir / filename;
+      string to_merge_file = lit_dir / rev_to_merge / filename;
+
+      std::regex exclude_commit_files(COMMIT_FILE_PATTERN);
+      if (regex_match(filename, exclude_commit_files)) {
+        continue;
+      }
+
+      if (!fs::exists(base_file)) {
+        // file was created newly in branch
+        fs::copy(to_merge_file, lit_dir / head_dir);
+      } else {
+        std::vector<string> args{base_file, to_merge_file};
+        exec cmd("diff", args);
+        string ret = cmd.run();
+        if (ret.empty()) {
+          // files are both untouched
+        } else {
+          // we have a conflict
+          conflict_files.push_back(to_merge_file);
+        }
+      }
+    }
+
+    if (conflict_files.empty()) {
+      cout << "fast forward merge ..." << endl;
+      branch branch{cwd};
+      branch.merge_branch(rev_to_merge);
+    } else {
+      cout << "there are merge conflicts in following files:" << endl;
+      for (auto f : conflict_files) {
+        cout << "\t" << f << endl;
+      }
+    }
   } else if (command.compare(CMD_LOG) == 0) {
 
     branch branch{cwd};
@@ -223,7 +300,10 @@ int main(int argc, char **argv) {
             cout << " o";
           is_brached = true;
         } else {
-          cout << " |";
+          if (latest_id == 1)
+            cout << " o";
+          else
+            cout << " |";
         }
         i++;
       }

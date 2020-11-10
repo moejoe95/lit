@@ -20,6 +20,7 @@ public:
                      const std::string &new_revision);
   void add_branch(const std::string &revision);
   std::set<std::string> get_active_branches();
+  void merge_branch(const std::string &to_merge);
 };
 
 #endif /* BRANCH_HPP */
