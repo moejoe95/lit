@@ -4,11 +4,14 @@
 #include <filesystem>
 #include <regex>
 #include <string>
+#include <vector>
 
 int read_int_from_file(std::filesystem::path dir);
+std::vector<int> read_vec_from_file(std::filesystem::path file_path);
 std::string read_string_from_file(std::filesystem::path dir);
 void write_to_file(std::filesystem::path file, const std::string &str);
 void write_to_file(std::filesystem::path file, const int number);
+void write_to_file(std::filesystem::path dir, std::vector<int> numbers);
 void delete_files(std::filesystem::path from, std::regex exclude);
 void copy_files_exclude(std::filesystem::path from, std::filesystem::path to,
                         std::regex exclude, bool override);

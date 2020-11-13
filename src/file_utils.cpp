@@ -17,6 +17,17 @@ int read_int_from_file(fs::path file_path) {
   return num;
 }
 
+std::vector<int> read_vec_from_file(fs::path file_path) {
+  std::string line;
+  std::ifstream file;
+  std::vector<int> ids;
+  file.open(file_path);
+  while (getline(file, line)) {
+    ids.push_back(std::stoi(line));
+  }
+  return ids;
+}
+
 string read_string_from_file(fs::path file_path) {
   std::ifstream file;
   file.open(file_path);
@@ -29,6 +40,16 @@ void write_to_file(fs::path dir, const string &str) {
   std::ofstream commit_file_out;
   commit_file_out.open(dir);
   commit_file_out << str;
+}
+
+void write_to_file(fs::path dir, std::vector<int> numbers) {
+  std::ofstream commit_file_out;
+  commit_file_out.open(dir, std::ios_base::app);
+  commit_file_out << std::to_string(numbers.at(0));
+  for (int i = 1; i < numbers.size(); i++) {
+    commit_file_out << std::endl;
+    commit_file_out << std::to_string(numbers.at(i));
+  }
 }
 
 void write_to_file(fs::path dir, const int number) {

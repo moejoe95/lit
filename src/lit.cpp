@@ -7,6 +7,7 @@
 
 #include "headers/branch.hpp"
 #include "headers/commit.hpp"
+#include "headers/commit_graph.hpp"
 #include "headers/constants.hpp"
 #include "headers/exec.hpp"
 #include "headers/file_utils.hpp"
@@ -52,14 +53,12 @@ void lit_init(fs::path cwd) {
   if (fs::exists(lit_path)) {
     cout << "directory already initialized as a lit repository." << endl;
   } else {
-    commit init_commit{cwd, "initialize lit repository"};
+    commit init_commit{cwd};
   }
 }
 
-std::string lit_checkout_next(fs::path cwd, const std::string &rev) {
+std::string lit_checkout_next(fs::path cwd, const string &rev, int parent_id) {
   fs::path lit_dir = cwd / LIT_DIR;
-  int parent_id = read_int_from_file(lit_dir / rev / COMMIT_PARENT_ID_FILE);
-
   fs::path patch_file = lit_dir / rev / COMMIT_PATCH;
 
   std::vector<string> args{"-ruN", "-d", cwd, "<", patch_file};
@@ -75,11 +74,20 @@ std::string lit_checkout_next(fs::path cwd, const std::string &rev) {
 
 std::string lit_checkout(fs::path cwd, const std::string &rev_to_check,
                          std::string rev_dir) {
-  while (rev_to_check != rev_dir) {
-    if (rev_dir != "r0") {
-      rev_dir = lit_checkout_next(cwd, rev_dir);
+
+  fs::path lit_dir = cwd / LIT_DIR;
+  std::vector<int> parent_ids =
+      read_vec_from_file(lit_dir / rev_dir / COMMIT_PARENT_ID_FILE);
+
+  for (int p : parent_ids) {
+    rev_dir = lit_checkout_next(cwd, rev_dir, p);
+    if (rev_dir == "r0" || rev_to_check == rev_dir) {
+      return rev_dir;
+    } else {
+      rev_dir = lit_checkout(cwd, rev_to_check, rev_dir);
     }
   }
+
   return rev_dir;
 }
 
@@ -114,11 +122,16 @@ int main(int argc, char **argv) {
     print_help_message();
   } else if (command.compare(CMD_STATUS) == 0) {
 
-    cout << "on commit: r" << head_id << endl;
+    if (head_id >= 0)
+      cout << "on commit: r" << head_id << endl;
 
     // list new files
     std::regex exclude("^.lit*");
     compare_directories(cwd, lit_dir / head_dir, exclude, "NEW");
+
+    if (head_id < 0) {
+      return 0;
+    }
 
     for (const auto &entry : fs::directory_iterator(cwd)) {
       string filename = entry.path().filename().u8string();
@@ -167,46 +180,44 @@ int main(int argc, char **argv) {
 
     cout << read_string_from_file(lit_dir / head_dir / COMMIT_INFO_FILE);
 
-    string patch = read_string_from_file(lit_dir / head_dir / COMMIT_PATCH);
-    cout << patch.substr(patch.find_first_of('\n'), patch.size());
+    if (fs::exists(lit_dir / head_dir / COMMIT_PATCH)) {
+      string patch = read_string_from_file(lit_dir / head_dir / COMMIT_PATCH);
+      cout << patch.substr(patch.find_first_of('\n'), patch.size());
+    }
 
   } else if (command.compare(CMD_CHECKOUT) == 0) {
 
     string rev_to_check;
     rev_to_check = REVISION_PX + std::to_string(head_id);
-
-    if (head_id != latest_id) {
-      std::regex exclude_commit("(^commit.*)");
-      delete_files(lit_dir / rev_to_check, exclude_commit);
-    }
-
     if (argc >= 3) {
       rev_to_check = argv[2];
     }
 
-    // delete files because no new branch was created
-    // TODO check if rev_to_check is head of branch, not latest commit
-    if (rev_to_check == rev_dir) {
-      write_to_file(lit_dir / COMMIT_HEAD, latest_id);
-      std::regex exclude("(^.lit*|^commit.*)");
-      copy_files_exclude(lit_dir / rev_dir, cwd, exclude, true);
-      return 0;
-    }
-
     branch branch{cwd};
     std::set<string> branches = branch.get_active_branches();
+
+    if (branches.count(rev_to_check) < 1) {
+      std::regex exclude_commit("(^commit.*)");
+      delete_files(lit_dir / rev_to_check, exclude_commit);
+    }
+
     bool rev_found = false;
     for (auto b : branches) {
       std::regex exclude("(^.lit*|^commit.*)");
       copy_files_exclude(lit_dir / b, cwd, exclude, true);
+      if (rev_to_check == b) {
+        head_id = std::stoi(b.substr(1, b.size()));
+        write_to_file(lit_dir / COMMIT_HEAD, head_id);
+        break;
+      }
       rev_dir = lit_checkout(cwd, rev_to_check, b);
-      if (rev_dir != "r0") {
+      if (rev_dir == rev_to_check) {
         rev_found = true;
         break;
       }
     }
 
-    if (rev_dir == "r0") {
+    if (rev_dir == "r-1") {
       cout << "revision: " << rev_to_check << " not found" << endl;
       write_to_file(lit_dir / COMMIT_HEAD, head_id);
     }
@@ -239,24 +250,27 @@ int main(int argc, char **argv) {
 
       if (!fs::exists(base_file)) {
         // file was created newly in branch
-        fs::copy(to_merge_file, lit_dir / head_dir);
+        fs::copy(to_merge_file, cwd);
       } else {
         std::vector<string> args{base_file, to_merge_file};
         exec cmd("diff", args);
         string ret = cmd.run();
         if (ret.empty()) {
-          // files are both untouched
+          // files are both untouched, do nothing
         } else {
           // we have a conflict
-          conflict_files.push_back(to_merge_file);
+          // TODO
         }
       }
     }
 
     if (conflict_files.empty()) {
-      cout << "fast forward merge ..." << endl;
       branch branch{cwd};
       branch.merge_branch(rev_to_merge);
+
+      string message = "merge " + rev_to_merge + " into " + head_dir;
+      commit merge_commit{cwd, message};
+      merge_commit.create_merge_commit(rev_to_merge);
     } else {
       cout << "there are merge conflicts in following files:" << endl;
       for (auto f : conflict_files) {
@@ -265,52 +279,8 @@ int main(int argc, char **argv) {
     }
   } else if (command.compare(CMD_LOG) == 0) {
 
-    branch branch{cwd};
-    std::set<string> branches = branch.get_active_branches();
-
-    std::vector<std::vector<int>> history;
-    for (auto b : branches) {
-      int id = read_int_from_file(lit_dir / b / COMMIT_PARENT_ID_FILE);
-      std::vector<int> branch_hist;
-      b = b.substr(1, b.size());
-      branch_hist.push_back(std::stoi(b));
-      while (id > 0) {
-        string rev = REVISION_PX + std::to_string(id);
-        branch_hist.push_back(id);
-        int old_id = id;
-        id = read_int_from_file(lit_dir / rev / COMMIT_PARENT_ID_FILE);
-      }
-      history.push_back(branch_hist);
-    }
-
-    while (latest_id > 0) {
-      string rev = REVISION_PX + std::to_string(latest_id);
-      string msg = read_string_from_file(lit_dir / rev / COMMIT_MESSAGE_FILE);
-
-      int i = 0;
-      bool is_brached = false;
-      for (auto branch_hist : history) {
-        for (int j = 0; j < i; j++)
-          cout << " ";
-
-        if (std::count(branch_hist.begin(), branch_hist.end(), latest_id)) {
-          if (is_brached)
-            cout << "_|";
-          else
-            cout << " o";
-          is_brached = true;
-        } else {
-          if (latest_id == 1)
-            cout << " o";
-          else
-            cout << " |";
-        }
-        i++;
-      }
-
-      cout << "\t\t" << msg << endl;
-      latest_id--;
-    }
+    commit_graph graph{cwd};
+    graph.print_graph();
 
   } else if (command.compare(CMD_BRANCHES) == 0) {
     branch branch{cwd};

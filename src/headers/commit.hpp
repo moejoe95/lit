@@ -4,13 +4,13 @@
 #include <chrono>
 #include <filesystem>
 #include <string>
+#include <vector>
 
 class commit {
 
 private:
   int id;
-  int parent_id;
-  bool init;
+  std::vector<int> parent_ids;
   std::filesystem::path cwd_path;
   std::filesystem::path lit_path;
   std::filesystem::path revision_dir;
@@ -25,8 +25,10 @@ private:
   void init_commit();
 
 public:
-  commit(std::filesystem::path cwd, std::string message);
+  commit(std::filesystem::path cwd, const std::string &message);
+  commit(std::filesystem::path cwd);
   void create_commit();
+  void create_merge_commit(const std::string &merge_rev);
 };
 
 #endif /* COMMIT_HPP */
