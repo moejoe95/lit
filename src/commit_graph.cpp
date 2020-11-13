@@ -23,7 +23,8 @@ commit_graph::commit_graph(fs::path cwd) : cwd(cwd) {
   }
 
   grid_rows = read_int_from_file(cwd / LIT_DIR / COMMIT_ID_FILE) + 1;
-  grid_cols = 20; // TODO: dont hardcode this
+  grid_cols = 20; // TODO
+
   initialize_grid();
 }
 
@@ -56,6 +57,28 @@ void commit_graph::print_grid() {
   }
 }
 
+void commit_graph::post_process_grid() {
+  // draw some missing lines here, and remove duplicated ones
+  for (int i = 0; i < grid_cols; i++) {
+    bool dup_branch = false;
+    bool miss = false;
+    for (int j = grid_rows - 1; j >= 0; j--) {
+      if (grid[j][i] == "┘") {
+        if (!dup_branch) {
+          dup_branch = true;
+          miss = false;
+        } else {
+          grid[j][i] = " ";
+        }
+      }
+      if (miss && grid[j][i] == " ")
+        grid[j][i] = "|";
+      if (grid[j][i] == "o" || grid[j][i] == "┐")
+        miss = true;
+    }
+  }
+}
+
 void commit_graph::print_graph() {
 
   // fill grid
@@ -64,6 +87,8 @@ void commit_graph::print_graph() {
     n.print_node(grid, i);
     i++;
   }
+
+  post_process_grid();
 
   // print grid
   print_grid();
@@ -92,22 +117,22 @@ void commit_node::init_branch_graph() {
 
 void commit_node::print_node(vector<vector<string>> &grid, int col) {
 
-  // if field in grid is reached more than once, the commit is a new branch
-  if (grid[id][col * 3] != " ") {
-    grid[id][3] = "┘";
+  // new branch opened
+  if (grid[id][col * COL_OFFSET] != " ") {
+    grid[id][col * COL_OFFSET + COL_OFFSET] = "┘";
   }
-  grid[id][col * 3] = "o";
+  grid[id][col * COL_OFFSET] = "o";
 
   // set | in branches "before" current branch
   if (col > 0) {
-    for (int i = 0; i < col * 3; i = i + 3) {
+    for (int i = 0; i < col * COL_OFFSET; i = i + COL_OFFSET) {
       grid[id][i] = "|";
     }
   }
 
   // if commit has more than one parent, it is a merge commit
   if (parents.size() > 1) {
-    grid[id][3] = "┐";
+    grid[id][(parents.size() - 1) * COL_OFFSET] = "┐";
   }
 
   int i = 0;

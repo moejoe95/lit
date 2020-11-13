@@ -8,6 +8,8 @@
 
 /* COMMIT_NODE */
 
+const int COL_OFFSET = 3;
+
 class commit_node {
 
 private:
@@ -35,6 +37,7 @@ private:
 
   void initialize_grid();
   void print_grid();
+  void post_process_grid();
 
 public:
   commit_graph(std::filesystem::path cwd);
