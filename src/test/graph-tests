@@ -1,0 +1,89 @@
+#!/bin/bash
+
+# additional test script for basic graph printing
+
+set -euo pipefail
+
+readonly TEST_DIR=$(mktemp --tmpdir --directory lit-test.XXXXXX)
+
+echo "== Using $TEST_DIR"
+pushd "$TEST_DIR"
+
+echo "== Initializing repository"
+lit init
+
+echo "== create commits r0, r1, r2"
+
+cat >file1 <<-EOF
+	first line
+EOF
+lit commit "add file1"
+
+echo >>file1 "line two"
+lit commit "add line two"
+
+echo >>file1 "line three"
+lit commit "add line three"
+
+echo "== check graph"
+lit log >> logfile
+cat logfile
+
+diff -s logfile - <<-EOF
+	o                   ⇽ r2: add line three
+	o                   r1: add line two
+	o                   r0: add file1
+EOF
+
+echo "== checkout r1"
+lit checkout r1
+
+echo "== check graph"
+lit log > logfile
+cat logfile
+diff -s logfile - <<-EOF
+	o                   r2: add line three
+	o                   ⇽ r1: add line two
+	o                   r0: add file1
+EOF
+
+echo "== create new file file2" 
+echo "line one" >> file2
+lit commit "add file2"
+
+echo "== check graph"
+lit log > logfile
+cat logfile
+diff -s logfile - <<-EOF
+	|  o                ⇽ r3: add file2
+	o  |                r2: add line three
+	o  ┘                r1: add line two
+	o                   r0: add file1
+EOF
+
+echo "== checkout r2"
+lit checkout r2
+
+echo "== check graph"
+lit log > logfile
+cat logfile
+diff -s logfile - <<-EOF
+	|  o                r3: add file2
+	o  |                ⇽ r2: add line three
+	o  ┘                r1: add line two
+	o                   r0: add file1
+EOF
+
+echo "== merge branch r3 into r2"
+lit merge r2
+
+echo "== check graph"
+lit log > logfile
+cat logfile
+# diff -s logfile - <<-EOF
+# 	o  ┐                ⇽ r4: merge r2 into r2
+# 	|  o                r3: add file2
+# 	o  |                r2: add line three
+# 	o  ┘                r1: add line two
+# 	o                   r0: add file1
+# EOF
