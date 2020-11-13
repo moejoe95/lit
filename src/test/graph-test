@@ -80,6 +80,8 @@ lit merge r2
 echo "== check graph"
 lit log > logfile
 cat logfile
+
+# TODO: doesn't work yet
 # diff -s logfile - <<-EOF
 # 	o  ┐                ⇽ r4: merge r2 into r2
 # 	|  o                r3: add file2

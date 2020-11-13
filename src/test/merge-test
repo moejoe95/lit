@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# additional test script for basic merging (without conflicts)
+# merge branch with new file
+# treat a deleted branch in both files as no conflict
+
+set -euo pipefail
+
+readonly TEST_DIR=$(mktemp --tmpdir --directory lit-test.XXXXXX)
+
+echo "== Using $TEST_DIR"
+pushd "$TEST_DIR"
+
+echo "== Initializing repository"
+lit init
+
+echo "== create commits r0, r1, r2"
+
+cat >file1 <<-EOF
+	first line
+EOF
+lit commit "add file1"
+
+echo >>file1 "line two"
+lit commit "add line two"
+
+echo "== remove file1"
+rm file1
+lit commit "remove file1"
+
+echo "== checkout r1"
+lit checkout r1
+
+# file1 is here
+test file1
+
+echo "== create new file file2" 
+cat >file2 <<-EOF
+	first line of file2
+EOF
+
+lit commit "add file2"
+
+echo "== remove file1 in this branch too"
+rm file1
+lit commit "remove file1"
+
+echo "== checkout r2"
+lit checkout r2
+
+# file2 shouldn't be there
+test ! -f file2
+
+# file1 shouldn't be there either
+test ! -f file1
+
+echo "== merge branch r3 into r2"
+lit merge r4
+
+# file2 should now be present.
+diff -s file2 - <<-EOF
+	first line of file2
+EOF
