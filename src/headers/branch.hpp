@@ -21,6 +21,7 @@ public:
   void add_branch(const std::string &revision);
   std::set<std::string> get_active_branches();
   void merge_branch(const std::string &to_merge);
+  void print_branches();
 };
 
 #endif /* BRANCH_HPP */

@@ -5,9 +5,16 @@
 #include <string>
 #include <vector>
 
-commit_graph::commit_graph(std::filesystem::path cwd) : cwd(cwd) {
+using std::cout;
+using std::string;
+using std::vector;
+namespace fs = std::filesystem;
+
+/* COMMIT_GRAPH IMPLEMENTATION */
+
+commit_graph::commit_graph(fs::path cwd) : cwd(cwd) {
   branch branch{cwd};
-  std::set<std::string> branches = branch.get_active_branches();
+  std::set<string> branches = branch.get_active_branches();
 
   for (auto b : branches) {
     commit_node node{cwd / LIT_DIR, b};
@@ -22,7 +29,7 @@ commit_graph::commit_graph(std::filesystem::path cwd) : cwd(cwd) {
 
 void commit_graph::initialize_grid() {
   for (int i = 0; i < grid_rows; i++) {
-    std::vector<std::string> row;
+    vector<string> row;
     for (int j = 0; j < grid_cols; j++) {
       row.push_back(" ");
     }
@@ -34,19 +41,18 @@ void commit_graph::print_grid() {
   for (int i = grid_rows - 1; i >= 0; i--) {
 
     for (int j = 0; j < grid_cols; j++) {
-      std::cout << grid[i][j];
+      cout << grid[i][j];
     }
 
-    std::string rev = REVISION_PX + std::to_string(i);
+    string rev = REVISION_PX + std::to_string(i);
     // set arrow at head position
     int head_id = read_int_from_file(cwd / LIT_DIR / COMMIT_HEAD);
     if (i == head_id) {
-      std::cout << "⇽ ";
+      cout << "⇽ ";
     }
-    std::cout << rev << ": "
-              << read_string_from_file(cwd / LIT_DIR / rev /
-                                       COMMIT_MESSAGE_FILE);
-    std::cout << std::endl;
+    cout << rev << ": "
+         << read_string_from_file(cwd / LIT_DIR / rev / COMMIT_MESSAGE_FILE);
+    cout << std::endl;
   }
 }
 
@@ -63,29 +69,28 @@ void commit_graph::print_graph() {
   print_grid();
 }
 
-// commit_node
+/* COMMIT_NODE IMPLEMENTATION */
 
-commit_node::commit_node(std::filesystem::path lit_dir, const std::string &rev)
+commit_node::commit_node(fs::path lit_dir, const string &rev)
     : rev(rev), lit_dir(lit_dir) {
   id = std::stoi(rev.substr(1, rev.size()));
 }
 
 void commit_node::init_branch_graph() {
-  std::vector<int> parent_ids =
+  vector<int> parent_ids =
       read_vec_from_file(lit_dir / rev / COMMIT_PARENT_ID_FILE);
 
   for (int parent : parent_ids) {
     if (parent < 0)
       continue;
-    std::string parent_rev = REVISION_PX + std::to_string(parent);
+    string parent_rev = REVISION_PX + std::to_string(parent);
     commit_node parent_commit{lit_dir, parent_rev};
     parent_commit.init_branch_graph();
     parents.push_back(parent_commit);
   }
 }
 
-void commit_node::print_node(std::vector<std::vector<std::string>> &grid,
-                             int col) {
+void commit_node::print_node(vector<vector<string>> &grid, int col) {
 
   // if field in grid is reached more than once, the commit is a new branch
   if (grid[id][col * 3] != " ") {

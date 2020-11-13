@@ -108,8 +108,7 @@ int main(int argc, char **argv) {
 
   if (!fs::exists(lit_dir)) {
     if (command != CMD_HELP && command != CMD_INIT) {
-      cout << "this directory is not initialized." << endl;
-      return -1;
+      return print_error("this directory is not initialized.");
     }
   }
 
@@ -119,7 +118,9 @@ int main(int argc, char **argv) {
   string head_dir = REVISION_PX + std::to_string(head_id);
 
   if (command.compare(CMD_HELP) == 0) {
+
     print_help_message();
+
   } else if (command.compare(CMD_STATUS) == 0) {
 
     if (head_id >= 0)
@@ -162,11 +163,8 @@ int main(int argc, char **argv) {
 
   } else if (command.compare(CMD_COMMIT) == 0) {
 
-    if (argc < 3) {
-      cout << "no commit message given." << endl;
-    } else {
-      create_commit(cwd, argv[2]);
-    }
+    create_commit(cwd, argv[2]);
+
   } else if (command.compare(CMD_SHOW) == 0) {
 
     if (argc >= 3) {
@@ -174,8 +172,7 @@ int main(int argc, char **argv) {
     }
 
     if (!fs::exists(lit_dir / head_dir)) {
-      cout << "Commit: " << head_dir << " does not exist." << endl;
-      return 0;
+      return print_error("Commit: " + head_dir + " does not exist.");
     }
 
     cout << read_string_from_file(lit_dir / head_dir / COMMIT_INFO_FILE);
@@ -187,10 +184,16 @@ int main(int argc, char **argv) {
 
   } else if (command.compare(CMD_CHECKOUT) == 0) {
 
+    // get commit to checkout
     string rev_to_check;
     rev_to_check = REVISION_PX + std::to_string(head_id);
     if (argc >= 3) {
       rev_to_check = argv[2];
+    }
+
+    // check if revision exists
+    if (!fs::exists(lit_dir / rev_to_check)) {
+      return print_error("Commit: " + rev_to_check + " does not exist.");
     }
 
     branch branch{cwd};
@@ -229,11 +232,6 @@ int main(int argc, char **argv) {
     }
 
   } else if (command.compare(CMD_MERGE) == 0) {
-
-    if (argc < 3) {
-      cout << "no commit to merge given." << endl;
-      return 0;
-    }
 
     string rev_to_merge{argv[2]};
     std::vector<string> conflict_files;
@@ -283,11 +281,10 @@ int main(int argc, char **argv) {
     graph.print_graph();
 
   } else if (command.compare(CMD_BRANCHES) == 0) {
+
     branch branch{cwd};
-    std::set<string> branches = branch.get_active_branches();
-    for (auto b : branches) {
-      cout << b << std::endl;
-    }
+    branch.print_branches();
+
   } else {
     return print_error("command not known.");
   }

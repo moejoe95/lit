@@ -49,4 +49,10 @@ void branch::serialize() {
   }
 }
 
+void branch::print_branches() {
+  for (auto b : branches) {
+    std::cout << b << std::endl;
+  }
+}
+
 std::set<std::string> branch::get_active_branches() { return branches; }
