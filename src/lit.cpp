@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "headers/branch.hpp"
+#include "headers/checkout.hpp"
 #include "headers/commit.hpp"
 #include "headers/commit_graph.hpp"
 #include "headers/constants.hpp"
@@ -57,53 +58,6 @@ void lit_init(fs::path cwd) {
   }
 }
 
-void patch(fs::path dir, fs::path patch_file) {
-  std::vector<string> args{"-ruN", "-d", dir, "<", patch_file};
-  exec cmd("patch", args);
-  cmd.run();
-}
-
-std::string lit_checkout_next(fs::path cwd, const string &rev, int parent_id) {
-  fs::path lit_dir = cwd / LIT_DIR;
-  fs::path patch_file = lit_dir / rev / COMMIT_PATCH;
-
-  // patch directories
-  for (const auto &entry : fs::directory_iterator(cwd)) {
-    string filename = entry.path().filename().u8string();
-    if (entry.is_directory()) {
-      patch(cwd / filename, patch_file);
-    }
-  }
-
-  // patch files
-  patch(cwd, patch_file);
-
-  // reset head
-  write_to_file(lit_dir / COMMIT_HEAD, parent_id);
-
-  std::string parent_rev_dir = REVISION_PX + std::to_string(parent_id);
-  return parent_rev_dir;
-}
-
-std::string lit_checkout(fs::path cwd, const std::string &rev_to_check,
-                         std::string rev_dir) {
-
-  fs::path lit_dir = cwd / LIT_DIR;
-  std::vector<int> parent_ids =
-      read_vec_from_file(lit_dir / rev_dir / COMMIT_PARENT_ID_FILE);
-
-  for (int p : parent_ids) {
-    rev_dir = lit_checkout_next(cwd, rev_dir, p);
-    if (rev_dir == "r0" || rev_to_check == rev_dir) {
-      return rev_dir;
-    } else {
-      rev_dir = lit_checkout(cwd, rev_to_check, rev_dir);
-    }
-  }
-
-  return rev_dir;
-}
-
 void create_commit(fs::path cwd, std::string message) {
   commit commit{cwd, message};
   commit.create_commit();
@@ -120,7 +74,7 @@ int main(int argc, char **argv) {
   fs::path lit_dir = cwd / LIT_DIR;
 
   if (!fs::exists(lit_dir)) {
-    if (command != CMD_HELP && command != CMD_INIT) {
+    if (command != "help" && command != "init") {
       return print_error("this directory is not initialized.");
     }
   }
@@ -130,18 +84,16 @@ int main(int argc, char **argv) {
   int head_id = read_int_from_file(lit_dir / COMMIT_HEAD);
   string head_dir = REVISION_PX + std::to_string(head_id);
 
-  if (command.compare(CMD_HELP) == 0) {
+  if (command == "help") {
 
     print_help_message();
 
-  } else if (command.compare(CMD_STATUS) == 0) {
+  } else if (command == "status") {
 
     if (head_id >= 0)
       cout << "on commit: r" << head_id << endl;
 
-    // list new files
-    std::regex exclude("^.lit*");
-    compare_directories(cwd, lit_dir / head_dir, exclude, "NEW");
+    compare_directories(cwd, lit_dir / head_dir, RX_LIT_FILES, "NEW");
 
     if (head_id < 0) {
       return 0;
@@ -149,7 +101,7 @@ int main(int argc, char **argv) {
 
     for (const auto &entry : fs::directory_iterator(cwd)) {
       string filename = entry.path().filename().u8string();
-      if (!regex_match(filename, exclude)) {
+      if (!regex_match(filename, RX_LIT_FILES)) {
         if (fs::exists(lit_dir / head_dir / filename)) {
 
           std::vector<string> args{"-q", cwd / filename,
@@ -165,20 +117,19 @@ int main(int argc, char **argv) {
     }
 
     // list deleted files
-    exclude = std::regex("(^.lit*|^commit.*)");
-    compare_directories(lit_dir / head_dir, cwd, exclude, "DEL");
+    compare_directories(lit_dir / head_dir, cwd, RX_LIT_COMMIT_FILES, "DEL");
 
     // TODO check for modified files
 
-  } else if (command.compare(CMD_INIT) == 0) {
+  } else if (command == "init") {
 
     lit_init(cwd);
 
-  } else if (command.compare(CMD_COMMIT) == 0) {
+  } else if (command == "commit") {
 
     create_commit(cwd, argv[2]);
 
-  } else if (command.compare(CMD_SHOW) == 0) {
+  } else if (command == "show") {
 
     if (argc >= 3) {
       head_dir = argv[2];
@@ -195,7 +146,7 @@ int main(int argc, char **argv) {
       cout << patch.substr(patch.find_first_of('\n'), patch.size());
     }
 
-  } else if (command.compare(CMD_CHECKOUT) == 0) {
+  } else if (command == "checkout") {
 
     // get commit to checkout
     string rev_to_check;
@@ -209,43 +160,10 @@ int main(int argc, char **argv) {
       return print_error("Commit: " + rev_to_check + " does not exist.");
     }
 
-    branch branch{cwd};
-    std::set<string> branches = branch.get_active_branches();
+    checkout checkout{cwd, rev_to_check};
+    checkout.create(rev_dir, head_id);
 
-    if (branches.count(rev_to_check) < 1) {
-      std::regex exclude_commit("(^commit.*)");
-      delete_files(lit_dir / rev_to_check, exclude_commit);
-    }
-
-    bool rev_found = false;
-    for (auto b : branches) {
-      std::regex exclude("(^.lit*|^commit.*)");
-      copy_files_exclude(lit_dir / b, cwd, exclude, true);
-
-      if (rev_to_check == b) {
-        head_id = std::stoi(b.substr(1, b.size()));
-        write_to_file(lit_dir / COMMIT_HEAD, head_id);
-        break;
-      }
-      rev_dir = lit_checkout(cwd, rev_to_check, b);
-      if (rev_dir == rev_to_check) {
-        rev_found = true;
-        break;
-      }
-    }
-
-    if (rev_dir == "r-1") {
-      cout << "revision: " << rev_to_check << " not found" << endl;
-      write_to_file(lit_dir / COMMIT_HEAD, head_id);
-    }
-
-    // copy files needed if new branch created in next step
-    if (rev_found) {
-      std::regex exclude_lit("(^.lit*)");
-      copy_files_exclude(cwd, lit_dir / rev_to_check, exclude_lit, false);
-    }
-
-  } else if (command.compare(CMD_MERGE) == 0) {
+  } else if (command == "merge") {
 
     string rev_to_merge{argv[2]};
 
@@ -255,8 +173,7 @@ int main(int argc, char **argv) {
       string base_file = lit_dir / head_dir / filename;
       string to_merge_file = lit_dir / rev_to_merge / filename;
 
-      std::regex exclude_commit_files(COMMIT_FILE_PATTERN);
-      if (regex_match(filename, exclude_commit_files)) {
+      if (regex_match(filename, RX_COMMIT_FILES)) {
         continue;
       }
 
@@ -283,15 +200,10 @@ int main(int argc, char **argv) {
     commit merge_commit{cwd, message};
     merge_commit.create_merge_commit(rev_to_merge);
 
-  } else if (command.compare(CMD_LOG) == 0) {
+  } else if (command == "log") {
 
     commit_graph graph{cwd};
     graph.print_graph();
-
-  } else if (command.compare(CMD_BRANCHES) == 0) {
-
-    branch branch{cwd};
-    branch.print_branches();
 
   } else {
     return print_error("command not known.");

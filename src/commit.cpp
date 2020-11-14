@@ -56,9 +56,8 @@ void commit::create_commit() {
   if (parent_ids.at(0) >= 0) {
     string out = diff();
 
-    std::regex exclude_lit("^.lit*");
     bool is_new =
-        compare_directories(cwd_path, parent_revision_dir, exclude_lit, "");
+        compare_directories(cwd_path, parent_revision_dir, RX_LIT_FILES, "");
 
     if (out.empty() && !is_new) {
       std::cout << "nothing to commit" << std::endl;
@@ -66,8 +65,7 @@ void commit::create_commit() {
       return;
     }
 
-    std::regex exclude(COMMIT_FILE_PATTERN);
-    delete_files(parent_revision_dir, exclude);
+    delete_files(parent_revision_dir, RX_COMMIT_FILES);
 
     fs::create_directories(revision_dir);
     fs::path patch_path = revision_dir / COMMIT_PATCH;
@@ -95,8 +93,7 @@ void commit::write_commit_infos() {
     fs::create_directories(revision_dir);
   }
 
-  std::regex exclude(".lit");
-  copy_files_exclude(cwd_path, revision_dir, exclude, false);
+  copy_files_exclude(cwd_path, revision_dir, RX_LIT_FILES, false);
 
   // write commit.message file
   write_to_file(revision_dir / COMMIT_MESSAGE_FILE, message);

@@ -1,6 +1,7 @@
 #ifndef CONST_HPP
 #define CONST_HPP
 
+#include <regex>
 #include <string>
 
 const std::string LIT_DIR = ".lit";
@@ -15,14 +16,8 @@ const std::string COMMIT_PATCH = "commit.patch";
 const std::string COMMIT_BRANCHES = "commit.branches";
 const std::string COMMIT_FILE_PATTERN = "commit.*";
 
-const std::string CMD_INIT = "init";
-const std::string CMD_STATUS = "status";
-const std::string CMD_COMMIT = "commit";
-const std::string CMD_MERGE = "merge";
-const std::string CMD_CHECKOUT = "checkout";
-const std::string CMD_SHOW = "show";
-const std::string CMD_LOG = "log";
-const std::string CMD_HELP = "help";
-const std::string CMD_BRANCHES = "branches";
+const std::regex RX_COMMIT_FILES("(^commit.*)");
+const std::regex RX_LIT_COMMIT_FILES("(^.lit*|^commit.*)");
+const std::regex RX_LIT_FILES("(^.lit*)");
 
 #endif /* CONST_HPP */

@@ -9,4 +9,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # lit
 include_directories(${PROJECT_SOURCE_DIR}/src)
-add_executable(lit src/lit.cpp src/commit.cpp src/exec.cpp src/file_utils.cpp src/branch.cpp src/commit_graph.cpp)
+add_executable(lit src/lit.cpp src/commit.cpp src/exec.cpp src/file_utils.cpp src/branch.cpp src/commit_graph.cpp src/checkout.cpp)
