@@ -57,13 +57,26 @@ void lit_init(fs::path cwd) {
   }
 }
 
+void patch(fs::path dir, fs::path patch_file) {
+  std::vector<string> args{"-ruN", "-d", dir, "<", patch_file};
+  exec cmd("patch", args);
+  cmd.run();
+}
+
 std::string lit_checkout_next(fs::path cwd, const string &rev, int parent_id) {
   fs::path lit_dir = cwd / LIT_DIR;
   fs::path patch_file = lit_dir / rev / COMMIT_PATCH;
 
-  std::vector<string> args{"-ruN", "-d", cwd, "<", patch_file};
-  exec cmd("patch", args);
-  cmd.run();
+  // patch directories
+  for (const auto &entry : fs::directory_iterator(cwd)) {
+    string filename = entry.path().filename().u8string();
+    if (entry.is_directory()) {
+      patch(cwd / filename, patch_file);
+    }
+  }
+
+  // patch files
+  patch(cwd, patch_file);
 
   // reset head
   write_to_file(lit_dir / COMMIT_HEAD, parent_id);
@@ -208,6 +221,7 @@ int main(int argc, char **argv) {
     for (auto b : branches) {
       std::regex exclude("(^.lit*|^commit.*)");
       copy_files_exclude(lit_dir / b, cwd, exclude, true);
+
       if (rev_to_check == b) {
         head_id = std::stoi(b.substr(1, b.size()));
         write_to_file(lit_dir / COMMIT_HEAD, head_id);
@@ -234,8 +248,8 @@ int main(int argc, char **argv) {
   } else if (command.compare(CMD_MERGE) == 0) {
 
     string rev_to_merge{argv[2]};
-    std::vector<string> conflict_files;
 
+    // TODO check for directories also
     for (const auto &entry : fs::directory_iterator(lit_dir / rev_to_merge)) {
       string filename = entry.path().filename().u8string();
       string base_file = lit_dir / head_dir / filename;
@@ -262,19 +276,13 @@ int main(int argc, char **argv) {
       }
     }
 
-    if (conflict_files.empty()) {
-      branch branch{cwd};
-      branch.merge_branch(rev_to_merge);
+    branch branch{cwd};
+    branch.merge_branch(rev_to_merge);
 
-      string message = "merge " + rev_to_merge + " into " + head_dir;
-      commit merge_commit{cwd, message};
-      merge_commit.create_merge_commit(rev_to_merge);
-    } else {
-      cout << "there are merge conflicts in following files:" << endl;
-      for (auto f : conflict_files) {
-        cout << "\t" << f << endl;
-      }
-    }
+    string message = "merge " + rev_to_merge + " into " + head_dir;
+    commit merge_commit{cwd, message};
+    merge_commit.create_merge_commit(rev_to_merge);
+
   } else if (command.compare(CMD_LOG) == 0) {
 
     commit_graph graph{cwd};

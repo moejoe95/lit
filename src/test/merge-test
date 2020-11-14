@@ -48,6 +48,9 @@ lit commit "remove file1"
 echo "== checkout r2"
 lit checkout r2
 
+# TODO check this log here
+# lit log
+
 # file2 shouldn't be there
 test ! -f file2
 

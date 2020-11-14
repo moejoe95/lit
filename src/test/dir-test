@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# additional test dealing with creation of directories
+# first implementation just handled files
+
+set -euo pipefail
+
+readonly TEST_DIR=$(mktemp --tmpdir --directory lit-test.XXXXXX)
+
+echo "== Using $TEST_DIR"
+pushd "$TEST_DIR"
+
+echo "== Initializing repository"
+lit init
+
+echo "== create commits r0, r1"
+mkdir dir
+cat >dir/file1 <<-EOF
+	first line
+EOF
+lit commit "add file1"
+
+echo >>dir/file1 "line two"
+lit commit "add line two"
+
+echo "== checkout r0"
+lit checkout r0
+
+diff -s dir/file1 - <<-EOF
+	first line
+EOF
+
+echo "== checkout r1"
+lit checkout r1
+
+diff -s dir/file1 - <<-EOF
+	first line
+	line two
+EOF

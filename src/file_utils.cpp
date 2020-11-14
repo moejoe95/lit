@@ -67,16 +67,22 @@ void delete_files(fs::path dir, std::regex exclude) {
 }
 
 void copy_files_exclude(fs::path from, fs::path to, std::regex exclude,
-                        bool override) {
+                        bool overwrite) {
 
-  if (override) {
+  if (overwrite) {
     delete_files(to, exclude);
   }
 
   for (const auto &entry : fs::directory_iterator(from)) {
     string filename = entry.path().filename().u8string();
     if (!regex_match(filename, exclude)) {
-      fs::copy(entry.path(), to);
+      if (entry.is_directory()) {
+
+        fs::create_directory(to / filename);
+        copy_files_exclude(from / filename, to / filename, exclude, overwrite);
+      } else {
+        fs::copy(entry.path(), to);
+      }
     }
   }
 }
