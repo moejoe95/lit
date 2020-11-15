@@ -1,10 +1,5 @@
-#include <algorithm>
-#include <array>
 #include <chrono>
-#include <ctime>
-#include <fstream>
 #include <iostream>
-#include <iterator>
 #include <regex>
 #include <sstream>
 #include <string>
@@ -59,7 +54,10 @@ void commit::create_commit() {
     bool is_new =
         compare_directories(cwd_path, parent_revision_dir, RX_LIT_FILES, "");
 
-    if (out.empty() && !is_new) {
+    bool is_del =
+        compare_directories(parent_revision_dir, cwd_path, RX_LIT_FILES, "");
+
+    if (out.empty() && !is_new && !is_del) {
       std::cout << "nothing to commit" << std::endl;
 
       return;

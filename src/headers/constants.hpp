@@ -19,5 +19,6 @@ const std::string COMMIT_FILE_PATTERN = "commit.*";
 const std::regex RX_COMMIT_FILES("(^commit.*)");
 const std::regex RX_LIT_COMMIT_FILES("(^.lit*|^commit.*)");
 const std::regex RX_LIT_FILES("(^.lit*)");
+const std::regex RX_NO("$^"); // matches nothing
 
 #endif /* CONST_HPP */
