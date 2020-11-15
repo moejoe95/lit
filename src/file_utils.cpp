@@ -99,6 +99,11 @@ void rcopy_file(fs::path from, fs::path to) {
   }
 }
 
+void rcopy_file(fs::path from, fs::path to, const std::string &suffix) {
+
+  fs::copy(from, to.u8string() + suffix);
+}
+
 bool compare_directories(fs::path from, fs::path to, std::regex exclude,
                          std::string identifier) {
   bool new_files = false;

@@ -16,6 +16,8 @@ void delete_files(std::filesystem::path from, std::regex exclude);
 void copy_files_exclude(std::filesystem::path from, std::filesystem::path to,
                         std::regex exclude, bool override);
 void rcopy_file(std::filesystem::path from, std::filesystem::path to);
+void rcopy_file(std::filesystem::path from, std::filesystem::path to,
+                const std::string &suffix);
 bool compare_directories(std::filesystem::path from, std::filesystem::path to,
                          std::regex exclude, std::string identifier);
 

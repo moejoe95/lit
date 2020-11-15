@@ -167,7 +167,8 @@ int main(int argc, char **argv) {
 
     string rev_to_merge{argv[2]};
 
-    // TODO check for directories also
+    bool conflicts = false;
+
     for (const auto &entry : fs::directory_iterator(lit_dir / rev_to_merge)) {
       string filename = entry.path().filename().u8string();
       string base_file = lit_dir / head_dir / filename;
@@ -175,7 +176,6 @@ int main(int argc, char **argv) {
       if (regex_match(filename, RX_COMMIT_FILES)) {
         continue;
       }
-
       if (!fs::exists(base_file)) {
         rcopy_file(entry.path(), cwd);
       } else {
@@ -185,8 +185,9 @@ int main(int argc, char **argv) {
         if (ret.empty()) {
           // files are both untouched, do nothing
         } else {
-          // we have a conflict
-          // TODO
+          cout << "conflict in file: " << base_file << endl;
+          conflicts = true;
+          fs::copy(entry.path(), filename + "." + rev_to_merge);
         }
       }
     }
@@ -194,9 +195,13 @@ int main(int argc, char **argv) {
     branch branch{cwd};
     branch.merge_branch(rev_to_merge);
 
-    string message = "merge " + rev_to_merge + " into " + head_dir;
-    commit merge_commit{cwd, message};
-    merge_commit.create_merge_commit(rev_to_merge);
+    if (!conflicts) {
+      string message = "merge " + rev_to_merge + " into " + head_dir;
+      commit merge_commit{cwd, message};
+      merge_commit.create_merge_commit(rev_to_merge);
+    } else {
+      cout << "no merge commit created, resolve conflicts first." << endl;
+    }
 
   } else if (command == "log") {
 

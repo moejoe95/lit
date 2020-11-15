@@ -116,11 +116,6 @@ void commit_node::init_branch_graph() {
 
 void commit_node::print_node(vector<vector<string>> &grid, int col) {
 
-  // new branch opened
-  if (grid[id][col * COL_OFFSET] != " ") {
-    grid[id][col * COL_OFFSET + COL_OFFSET] = "┘";
-  }
-
   bool rev_set = false;
   for (int i = 0; i < col * COL_OFFSET; i = i + COL_OFFSET) {
     if (grid[id][i] == "o") {
@@ -129,8 +124,7 @@ void commit_node::print_node(vector<vector<string>> &grid, int col) {
   }
   if (!rev_set) {
     grid[id][col * COL_OFFSET] = "o";
-    for (int i = 0; i < col * COL_OFFSET; i = i + COL_OFFSET)
-      grid[id][i] = "|";
+
   } else {
     if (col > 0)
       grid[id][col * COL_OFFSET] = "┘";
