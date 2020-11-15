@@ -61,6 +61,21 @@ diff -s logfile - <<-EOF
 	o                   r0: add file1
 EOF
 
+echo "== edit file file2" 
+
+echo "line two" >> file2
+lit commit "edit file2"
+
+lit log > logfile
+cat logfile
+diff -s logfile - <<-EOF
+	|  o                ⇽ r4: edit file2
+	|  o                r3: add file2
+	o  |                r2: add line three
+	o  ┘                r1: add line two
+	o                   r0: add file1
+EOF
+
 echo "== checkout r2"
 lit checkout r2
 
@@ -68,6 +83,7 @@ echo "== check graph"
 lit log > logfile
 cat logfile
 diff -s logfile - <<-EOF
+	|  o                r4: edit file2
 	|  o                r3: add file2
 	o  |                ⇽ r2: add line three
 	o  ┘                r1: add line two
@@ -81,11 +97,11 @@ echo "== check graph"
 lit log > logfile
 cat logfile
 
-# TODO: doesn't work yet
-# diff -s logfile - <<-EOF
-# 	o  ┐                ⇽ r4: merge r2 into r2
-# 	|  o                r3: add file2
-# 	o  |                r2: add line three
-# 	o  ┘                r1: add line two
-# 	o                   r0: add file1
-# EOF
+TODO: doesn't work yet
+diff -s logfile - <<-EOF
+	o  ┐                ⇽ r4: merge r2 into r2
+	|  o                r3: add file2
+	o  |                r2: add line three
+	o  ┘                r1: add line two
+	o                   r0: add file1
+EOF

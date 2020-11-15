@@ -90,7 +90,6 @@ void commit_graph::print_graph() {
 
   post_process_grid();
 
-  // print grid
   print_grid();
 }
 
@@ -121,13 +120,20 @@ void commit_node::print_node(vector<vector<string>> &grid, int col) {
   if (grid[id][col * COL_OFFSET] != " ") {
     grid[id][col * COL_OFFSET + COL_OFFSET] = "┘";
   }
-  grid[id][col * COL_OFFSET] = "o";
 
-  // set | in branches "before" current branch
-  if (col > 0) {
-    for (int i = 0; i < col * COL_OFFSET; i = i + COL_OFFSET) {
-      grid[id][i] = "|";
+  bool rev_set = false;
+  for (int i = 0; i < col * COL_OFFSET; i = i + COL_OFFSET) {
+    if (grid[id][i] == "o") {
+      rev_set = true;
     }
+  }
+  if (!rev_set) {
+    grid[id][col * COL_OFFSET] = "o";
+    for (int i = 0; i < col * COL_OFFSET; i = i + COL_OFFSET)
+      grid[id][i] = "|";
+  } else {
+    if (col > 0)
+      grid[id][col * COL_OFFSET] = "┘";
   }
 
   // if commit has more than one parent, it is a merge commit
@@ -137,7 +143,7 @@ void commit_node::print_node(vector<vector<string>> &grid, int col) {
 
   int i = 0;
   for (auto p : parents) {
-    p.print_node(grid, i); // print recursively
+    p.print_node(grid, i + col); // print recursively
     i++;
   }
 }
