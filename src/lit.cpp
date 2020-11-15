@@ -171,17 +171,15 @@ int main(int argc, char **argv) {
     for (const auto &entry : fs::directory_iterator(lit_dir / rev_to_merge)) {
       string filename = entry.path().filename().u8string();
       string base_file = lit_dir / head_dir / filename;
-      string to_merge_file = lit_dir / rev_to_merge / filename;
 
       if (regex_match(filename, RX_COMMIT_FILES)) {
         continue;
       }
 
       if (!fs::exists(base_file)) {
-        // file was created newly in branch
-        fs::copy(to_merge_file, cwd);
+        rcopy_file(entry.path(), cwd);
       } else {
-        std::vector<string> args{base_file, to_merge_file};
+        std::vector<string> args{base_file, lit_dir / rev_to_merge / filename};
         exec cmd("diff", args);
         string ret = cmd.run();
         if (ret.empty()) {

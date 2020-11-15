@@ -15,8 +15,7 @@ void write_to_file(std::filesystem::path dir, std::vector<int> numbers);
 void delete_files(std::filesystem::path from, std::regex exclude);
 void copy_files_exclude(std::filesystem::path from, std::filesystem::path to,
                         std::regex exclude, bool override);
-void copy_files(std::filesystem::path from, std::filesystem::path to);
-void crop_file_names(std::filesystem::path dir, std::string file_ends);
+void rcopy_file(std::filesystem::path from, std::filesystem::path to);
 bool compare_directories(std::filesystem::path from, std::filesystem::path to,
                          std::regex exclude, std::string identifier);
 
