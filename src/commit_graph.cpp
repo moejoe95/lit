@@ -115,7 +115,6 @@ void commit_node::init_branch_graph() {
 }
 
 void commit_node::print_node(vector<vector<string>> &grid, int col) {
-
   bool rev_set = false;
   for (int i = 0; i < col * COL_OFFSET; i = i + COL_OFFSET) {
     if (grid[id][i] == "o") {

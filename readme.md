@@ -8,8 +8,10 @@ This project is done as one assignment for the course *703807 Advanced C++ progr
 ## Known Issues / TODOs
 
 * merging with conflicts is not implemented
+  * merges are assumed to be conflict free
 * graph printing fails if there are two many branches
   * there are only 20 columns available for printing
+* not every command implements proper error handling - the program may crash on *invalid* inputs
 * format of graph printing is a little bit different as in specification:
 ```
 	o  ┐                ⇽ r4: merge r2 into r2

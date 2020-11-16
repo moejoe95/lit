@@ -179,16 +179,7 @@ int main(int argc, char **argv) {
       if (!fs::exists(base_file)) {
         rcopy_file(entry.path(), cwd);
       } else {
-        std::vector<string> args{base_file, lit_dir / rev_to_merge / filename};
-        exec cmd("diff", args);
-        string ret = cmd.run();
-        if (ret.empty()) {
-          // files are both untouched, do nothing
-        } else {
-          cout << "conflict in file: " << base_file << endl;
-          conflicts = true;
-          fs::copy(entry.path(), filename + "." + rev_to_merge);
-        }
+        // TODO merging with conflicts
       }
     }
 
@@ -202,12 +193,10 @@ int main(int argc, char **argv) {
     } else {
       cout << "no merge commit created, resolve conflicts first." << endl;
     }
-
   } else if (command == "log") {
 
     commit_graph graph{cwd};
     graph.print_graph();
-
   } else {
     return print_error("command not known.");
   }

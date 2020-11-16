@@ -26,7 +26,7 @@ echo >>file1 "line three"
 lit commit "add line three"
 
 echo "== check graph"
-lit log >> logfile
+lit log > logfile
 cat logfile
 
 diff -s logfile - <<-EOF
@@ -90,19 +90,3 @@ diff -s logfile - <<-EOF
 	o                   r0: add file1
 EOF
 
-echo "== merge branch r3 into r2"
-lit merge r2
-
-echo "== check graph"
-lit log > logfile
-cat logfile
-
-
-# diff -s logfile - <<-EOF
-# 	o  ┐
-# 	|  o                r4: edit file2
-# 	|  o                r3: add file2
-# 	o  |                ⇽ r2: add line three
-# 	o  ┘                r1: add line two
-# 	o                   r0: add file1
-# EOF
