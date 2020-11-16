@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
       return print_error("Commit: " + rev_to_check + " does not exist.");
     }
 
-    checkout checkout{cwd, rev_to_check};
+    checkout checkout{cwd, head_dir, rev_to_check};
     checkout.create(rev_dir, head_id);
 
   } else if (command == "merge") {

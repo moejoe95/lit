@@ -11,8 +11,8 @@ using std::endl;
 using std::string;
 namespace fs = std::filesystem;
 
-checkout::checkout(fs::path cwd, fs::path to_checkout)
-    : cwd(cwd), to_checkout(to_checkout) {
+checkout::checkout(fs::path cwd, fs::path head_dir, fs::path to_checkout)
+    : cwd(cwd), head_dir(head_dir), to_checkout(to_checkout) {
   lit_dir = cwd / LIT_DIR;
 }
 
@@ -20,8 +20,8 @@ void checkout::create(string rev_dir, int head_id) {
   branch branch{cwd};
   std::set<string> branches = branch.get_active_branches();
 
-  if (branches.count(to_checkout) < 1) {
-    delete_files(lit_dir / to_checkout, RX_COMMIT_FILES);
+  if (branches.count(head_dir) < 1) {
+    delete_files(lit_dir / head_dir, RX_COMMIT_FILES);
   }
 
   bool rev_found = false;

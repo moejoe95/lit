@@ -62,6 +62,7 @@ void delete_files(fs::path dir, std::regex exclude) {
     string filename = entry.path().filename().u8string();
     if (!regex_match(filename, exclude)) {
       fs::remove_all(entry.path());
+      // std::cout << "remove " << entry.path().u8string() << std::endl;
     }
   }
 }
