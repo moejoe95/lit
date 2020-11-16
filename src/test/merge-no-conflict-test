@@ -36,7 +36,7 @@ EOF
 
 lit commit "add file2"
 
-echo "== checkout r2"
+echo "== checkout r1"
 lit checkout r1
 
 # file2 shouldn't be there

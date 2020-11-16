@@ -167,8 +167,6 @@ int main(int argc, char **argv) {
 
     string rev_to_merge{argv[2]};
 
-    bool conflicts = false;
-
     for (const auto &entry : fs::directory_iterator(lit_dir / rev_to_merge)) {
       string filename = entry.path().filename().u8string();
       string base_file = lit_dir / head_dir / filename;
@@ -186,13 +184,10 @@ int main(int argc, char **argv) {
     branch branch{cwd};
     branch.merge_branch(rev_to_merge);
 
-    if (!conflicts) {
-      string message = "merge " + rev_to_merge + " into " + head_dir;
-      commit merge_commit{cwd, message};
-      merge_commit.create_merge_commit(rev_to_merge);
-    } else {
-      cout << "no merge commit created, resolve conflicts first." << endl;
-    }
+    string message = "merge " + rev_to_merge + " into " + head_dir;
+    commit merge_commit{cwd, message};
+    merge_commit.create_merge_commit(rev_to_merge);
+
   } else if (command == "log") {
 
     commit_graph graph{cwd};

@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# additional test dealing with newly created files
+# should not be visible if checking out to an old version
+
+set -euo pipefail
+
+readonly TEST_DIR=$(mktemp --tmpdir --directory lit-test.XXXXXX)
+
+echo "== Using $TEST_DIR"
+pushd "$TEST_DIR"
+
+echo "== Initializing repository"
+lit init
+
+echo "== create commits r0, r1"
+cat >file1 <<-EOF
+	first line
+EOF
+lit commit "add file1"
+
+cat >file2 <<-EOF
+	first line
+EOF
+lit commit "add file2"
+
+echo "== checkout r0"
+lit checkout r0
+
+diff -s file1 - <<-EOF
+	first line
+EOF
+
+test ! -f file2 && echo "OK: file2 not here" || echo "FAIL: file2 here"
