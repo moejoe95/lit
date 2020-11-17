@@ -32,3 +32,7 @@ diff -s file1 - <<-EOF
 EOF
 
 test ! -f file2 && echo "OK: file2 not here" || echo "FAIL: file2 here"
+
+echo "== Cleanup"
+popd
+rm -r "$TEST_DIR"

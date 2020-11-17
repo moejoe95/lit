@@ -37,3 +37,7 @@ diff -s dir/file1 - <<-EOF
 	first line
 	line two
 EOF
+
+echo "== Cleanup"
+popd
+rm -r "$TEST_DIR"

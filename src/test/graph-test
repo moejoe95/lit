@@ -90,3 +90,6 @@ diff -s logfile - <<-EOF
 	o                   r0: add file1
 EOF
 
+echo "== Cleanup"
+popd
+rm -r "$TEST_DIR"
