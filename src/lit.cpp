@@ -19,27 +19,25 @@ using std::endl;
 using std::string;
 
 void print_help_message() {
-  cout << "usage: lit <command> [<commit_id>] \n\n"
+  cout << "usage: lit <command> \n\n"
           "command is one of: \n"
           "  help \n"
-          "    Display this message.\n"
+          "    Display this text.\n"
           "  status \n"
           "    Display current status of the lit repository.\n"
           "  init \n"
           "    Initialize a lit repository.\n"
-          "  commit <id>\n"
-          "    Creates a new commit containing all changes.\n"
+          "  commit <message>\n"
+          "    Creates a new commit with commit-message.\n"
           "  show <id>\n"
           "    Lets you inspect a commit.\n"
           "  checkout <id>\n"
-          "    Resets the state of all files to a given commit' state.\n"
+          "    Resets the state of all files to a given commit state.\n"
           "  merge <id>\n"
           "    Starts merging process with the currently checked out "
           "commit and a specified commit.\n"
           "  log \n"
-          "    Displays a commit graph.\n"
-          "  branches \n"
-          "    List active branches."
+          "    Displays a commit graph."
        << endl;
 }
 
